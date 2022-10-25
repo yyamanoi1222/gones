@@ -6,7 +6,9 @@ import (
   "io"
 )
 
-const NesHeaderSize = 16
+const NesHeaderSize int64 = 16
+const ProgramRomBaseSize int64 = 16384
+const CharRomBaseSize int64 = 8192
 
 type rom struct {
   data []byte
@@ -37,17 +39,39 @@ func loadCartridge(path string) *Cartridge {
   defer file.Close()
 
   hr := io.NewSectionReader(file, 0, NesHeaderSize)
-  title := make([]byte, 3)
-
-  _, err = hr.Read(title)
+  header := make([]byte, 16)
+  _, err = hr.Read(header)
   if err != nil {
     log.Fatal(err)
     os.Exit(1)
   }
 
+  title := header[0:3]
+
   if string(title) != "NES" {
     log.Fatal("Invalid NES Header")
+    os.Exit(1)
   }
 
-  return &Cartridge{}
+  prgSize := int64(header[4]) * ProgramRomBaseSize
+  charSize := int64(header[5]) * CharRomBaseSize
+
+  pr := io.NewSectionReader(file, NesHeaderSize, prgSize)
+  prgRom, err := io.ReadAll(pr)
+  if err != nil {
+    log.Fatal(err)
+    os.Exit(1)
+  }
+
+  cr := io.NewSectionReader(file, prgSize + 1, charSize)
+  chrRom, err := io.ReadAll(cr)
+  if err != nil {
+    log.Fatal(err)
+    os.Exit(1)
+  }
+
+  return NewCartridge(
+    &rom{data: prgRom},
+    &rom{data: chrRom},
+  )
 }
