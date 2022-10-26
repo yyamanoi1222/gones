@@ -14,7 +14,8 @@ type rom struct {
   data []byte
 }
 
-func (r *rom) Read() {
+func (r *rom) Read(addr uint16) byte {
+  return r.data[addr]
 }
 
 type Cartridge struct {
