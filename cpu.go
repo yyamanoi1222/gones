@@ -91,15 +91,22 @@ func (c *CPU) Reset() {
 }
 
 func (c *CPU) Step() {
+  log.Printf("---Start Step--- \n")
+  log.Printf("pc %v \n", c.Register.PC)
+
   v := c.Read(c.Register.PC)
-  c.Register.PC++
   op := opecode[v]
   am := addressingModeMap[v]
+
+  log.Printf("op %v \n", op)
+  log.Printf("am %v \n", am)
 
   c.Register.PC++
 
   addr := c.getAddrFromMode(am)
-  c.exec(op, addr)
+  c.exec(op, addr, am)
+
+  log.Printf("---End Step--- \n\n")
 }
 
 func (c *CPU) getAddrFromMode(mode uint8) uint16 {
@@ -175,8 +182,39 @@ func (c *CPU) getAddrFromMode(mode uint8) uint16 {
   return 0
 }
 
-func (c *CPU) exec(operator string, addr uint16) {
+func (c *CPU) exec(operator string, addr uint16, mode uint8) {
   switch operator {
+  case "LDX":
+    var v byte
+    if mode == 3 {
+      v = c.Read(addr)
+      c.Register.PC++
+    } else {
+      v = c.Read(addr)
+    }
+    c.Register.X = v
+  case "LDA":
+    var v byte
+    if mode == 3 {
+      v = c.Read(addr)
+      c.Register.PC++
+    } else {
+      v = c.Read(addr)
+    }
+    c.Register.A = v
+  case "SEI":
+    c.Register.P = c.Register.P | REGISTER_STATUS_I
+  case "BRK":
+    if c.Register.P & REGISTER_STATUS_I == 0 {
+      return
+    } else {
+      c.Register.P = c.Register.P | REGISTER_STATUS_B
+      c.Register.PC++
+      // TODO
+      // PUSH to stack
+      c.Register.P = c.Register.P | REGISTER_STATUS_I
+    }
+
   default:
     log.Fatal("cannnot hadle operator ", operator)
   }
@@ -212,4 +250,12 @@ func (c *CPU) Read(addr uint16) byte {
 }
 
 func (c *CPU) Write(addr uint16) {
+}
+
+func (c *CPU) push(data byte) {
+}
+
+func (c *CPU) pop() byte {
+  var i byte
+  return i
 }

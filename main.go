@@ -9,5 +9,8 @@ func main() {
   }
   cpu := NewCPU(bus)
   cpu.Reset()
-  // cpu.Step()
+
+  for {
+    cpu.Step()
+  }
 }
