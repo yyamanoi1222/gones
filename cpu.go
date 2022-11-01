@@ -12,25 +12,25 @@ type Register struct {
   X byte
   Y byte
   S byte
-  P byte
   PC uint16
+  P *statusRegister
 }
 
-const (
-  REGISTER_STATUS_C = 1<<iota
-  REGISTER_STATUS_Z = 1<<iota
-  REGISTER_STATUS_I = 1<<iota
-  REGISTER_STATUS_D = 1<<iota
-  REGISTER_STATUS_B = 1<<iota
-  REGISTER_STATUS_R = 1<<iota
-  REGISTER_STATUS_V = 1<<iota
-  REGISTER_STATUS_N = 1<<iota
-)
+type statusRegister struct {
+  C bool
+  Z bool
+  I bool
+  D bool
+  B bool
+  R bool
+  V bool
+  N bool
+}
 
 var opecode [256]string = [256]string{
   "BRK", "ORA", "*",   "*", "*",   "ORA", "ASL", "*", "PHP", "ORA", "ASL", "*", "*",   "ORA", "ASL", "*",
   "BPL", "ORA", "*",   "*", "*",   "ORA", "ASL", "*", "CLC", "ORA", "*",   "*", "*",   "ORA", "ASL", "*",
-  "JSL", "AND", "*",   "*", "BIT", "AND", "ROL", "*", "PLP", "ANS", "ROL", "*", "BIT", "AND", "ROL", "*",
+  "JSR", "AND", "*",   "*", "BIT", "AND", "ROL", "*", "PLP", "ANS", "ROL", "*", "BIT", "AND", "ROL", "*",
   "BMI", "AND", "*",   "*", "*",   "AND", "ROL", "*", "SEC", "AND", "*",   "*", "*",   "AND", "ROL", "*",
   "RTI", "EOR", "*",   "*", "*",   "EOR", "LSR", "*", "PHA", "EOR", "LSR", "*", "JMP", "EOR", "LSR", "*",
   "BVC", "EOR", "*",   "*", "*",   "EOR", "LSR", "*", "CLI", "EOR", "*",   "*", "*",   "EOR", "LSR", "*",
@@ -88,6 +88,7 @@ func NewCPU(bus *CPUBus) *CPU {
 
 func (c *CPU) Reset() {
   c.Register.PC = c.ReadDouble(0xFFFC)
+  c.Register.P = &statusRegister{}
 }
 
 func (c *CPU) Step() {
@@ -152,7 +153,12 @@ func (c *CPU) getAddrFromMode(mode uint8) uint16 {
   case 10:
     v := c.Read(c.Register.PC)
     c.Register.PC++
-    return uint16(v) + c.Register.PC
+
+    if v < 0x80 {
+      return uint16(v) + c.Register.PC
+    } else {
+      return uint16(v) + c.Register.PC - 256
+    }
   case 11:
     v := c.Read(c.Register.PC)
     c.Register.PC++
@@ -185,36 +191,70 @@ func (c *CPU) getAddrFromMode(mode uint8) uint16 {
 func (c *CPU) exec(operator string, addr uint16, mode uint8) {
   switch operator {
   case "LDX":
-    var v byte
-    if mode == 3 {
-      v = c.Read(addr)
-      c.Register.PC++
-    } else {
-      v = c.Read(addr)
-    }
+    v := c.Read(addr)
     c.Register.X = v
+    c.Register.P.Z = v == 0
+    c.Register.P.N = v & 0x80 > 0
+    return
   case "LDA":
-    var v byte
-    if mode == 3 {
-      v = c.Read(addr)
-      c.Register.PC++
-    } else {
-      v = c.Read(addr)
-    }
+    v := c.Read(addr)
     c.Register.A = v
-  case "SEI":
-    c.Register.P = c.Register.P | REGISTER_STATUS_I
-  case "BRK":
-    if c.Register.P & REGISTER_STATUS_I == 0 {
-      return
-    } else {
-      c.Register.P = c.Register.P | REGISTER_STATUS_B
-      c.Register.PC++
-      // TODO
-      // PUSH to stack
-      c.Register.P = c.Register.P | REGISTER_STATUS_I
+    c.Register.P.Z = v == 0
+    c.Register.P.N = v & 0x80 > 0
+    return
+  case "LDY":
+    v := c.Read(addr)
+    c.Register.Y = v
+    c.Register.P.Z = v == 0
+    c.Register.P.N = v & 0x80 > 0
+  case "INX":
+    v := c.Register.X + 1
+    c.Register.X = v
+    c.Register.P.Z = v == 0
+    c.Register.P.N = v & 0x80 > 0
+  case "DEY":
+    v := c.Register.Y - 1
+    c.Register.Y = v
+    c.Register.P.Z = v == 0
+    c.Register.P.N = v & 0x80 > 0
+  case "TXS":
+    c.Register.S = c.Register.X
+  case "STA":
+    c.Write(addr, c.Register.A)
+    return
+  case "ASL":
+    c.Register.P.C = c.Register.A >> 7 & 1 == 1
+    r := c.Register.A << 1
+    c.Register.A = r
+    c.Register.P.Z = r == 0
+    c.Register.P.N = r & 0x80 > 0
+  case "BPL":
+    if !c.Register.P.N {
+      c.Register.PC = addr
     }
-
+  case "BNE":
+    if !c.Register.P.Z {
+      c.Register.PC = addr
+    }
+  case "SEI":
+    c.Register.P.I = false
+    return
+  case "JSR":
+    c.Register.PC = addr
+    // Push to stack
+  case "JMP":
+    c.Register.PC = addr
+    return
+  case "BRK":
+    if !c.Register.P.I {
+      return
+    }
+    c.Register.P.B = true
+    c.Register.PC++
+    // TODO
+    // Push to stack
+    c.Register.P.I = true
+    return
   default:
     log.Fatal("cannnot hadle operator ", operator)
   }
@@ -249,7 +289,7 @@ func (c *CPU) Read(addr uint16) byte {
   return i
 }
 
-func (c *CPU) Write(addr uint16) {
+func (c *CPU) Write(addr uint16, data byte) {
 }
 
 func (c *CPU) push(data byte) {

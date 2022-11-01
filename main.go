@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 func main() {
   cartridge := loadCartridge("sample.nes")
   ram := NewMemory(2048)
@@ -11,6 +13,7 @@ func main() {
   cpu.Reset()
 
   for {
+    time.Sleep(time.Millisecond * 1)
     cpu.Step()
   }
 }
