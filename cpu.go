@@ -112,45 +112,43 @@ func (c *CPU) Step() {
 
 func (c *CPU) getAddrFromMode(mode uint8) uint16 {
   switch mode {
-  case 1:
+  case ADDRESSING_MODE_IMPL:
     return 0
-  case 2:
+  case ADDRESSING_MODE_A:
     return 0
-  case 3:
+  case ADDRESSING_MODE_IM:
     v := c.Read(c.Register.PC)
     c.Register.PC++
     return uint16(v)
-  case 4:
+  case ADDRESSING_MODE_ZPG:
     v := c.Read(c.Register.PC)
     c.Register.PC++
     return uint16(0x00 << 8 | uint16(v))
-  case 5:
+  case ADDRESSING_MODE_ZPX:
     v := c.Read(c.Register.PC)
     c.Register.PC++
     return uint16(0x00 << 8 | (v + c.Register.X))
-  case 6:
+  case ADDRESSING_MODE_ZPY:
     v := c.Read(c.Register.PC)
     c.Register.PC++
     return uint16(0x00 << 8 | (v + c.Register.Y))
-  case 7:
-    l := c.Read(c.Register.PC)
-    c.Register.PC++
-    u := c.Read(c.Register.PC)
-    c.Register.PC++
-    return uint16(u << 8 | l)
-  case 8:
+  case ADDRESSING_MODE_ABS:
+    r := c.ReadDouble(c.Register.PC)
+    c.Register.PC+=2
+    return r
+  case ADDRESSING_MODE_ABSX:
     l := c.Read(c.Register.PC)
     c.Register.PC++
     u := c.Read(c.Register.PC)
     c.Register.PC++
     return uint16(u << 8 | l) + uint16(c.Register.X)
-  case 9:
+  case ADDRESSING_MODE_ABSY:
     l := c.Read(c.Register.PC)
     c.Register.PC++
     u := c.Read(c.Register.PC)
     c.Register.PC++
     return uint16(u << 8 | l) + uint16(c.Register.Y)
-  case 10:
+  case ADDRESSING_MODE_REL:
     v := c.Read(c.Register.PC)
     c.Register.PC++
 
@@ -159,21 +157,21 @@ func (c *CPU) getAddrFromMode(mode uint8) uint16 {
     } else {
       return uint16(v) + c.Register.PC - 256
     }
-  case 11:
+  case ADDRESSING_MODE_IIND:
     v := c.Read(c.Register.PC)
     c.Register.PC++
     b := uint16(0x00 << 8 | v) + uint16(c.Register.X)
     l := c.Read(b)
     h := c.Read(b+1)
     return uint16(h << 8 | l)
-  case 12:
+  case ADDRESSING_MODE_INDI:
     v := c.Read(c.Register.PC)
     c.Register.PC++
     b := uint16(0x00 << 8 | v)
     l := c.Read(b)
     h := c.Read(b+1)
     return uint16(h << 8 | l) + uint16(c.Register.Y)
-  case 13:
+  case ADDRESSING_MODE_ABSI:
     l := c.Read(c.Register.PC)
     c.Register.PC++
     u := c.Read(c.Register.PC)
