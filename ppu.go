@@ -33,6 +33,10 @@ type PPU struct {
   bg [960]byte
 }
 
+type tile struct {
+  sprite [16]byte
+}
+
 func NewPPU(bus *PPUBus) *PPU {
   var r PPURegister = [8]byte{1,2,3,4,5,6,7,8}
   return &PPU{
