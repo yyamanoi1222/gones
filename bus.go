@@ -7,3 +7,7 @@ type CPUBus struct {
   Cartridge *Cartridge
   PPU *PPU
 }
+
+type PPUBus struct {
+  Memory *Memory
+}

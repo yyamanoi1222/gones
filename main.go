@@ -4,18 +4,23 @@ import "time"
 
 func main() {
   cartridge := loadCartridge("sample.nes")
-  ram := NewMemory(2048)
-  ppu := NewPPU()
-  bus := &CPUBus{
+  wram := NewMemory(2048)
+  vram := NewMemory(2048)
+  pb := &PPUBus{
+    Memory: vram,
+  }
+  ppu := NewPPU(pb)
+  cb := &CPUBus{
     PPU: ppu,
     Cartridge: cartridge,
-    Memory: ram,
+    Memory: wram,
   }
-  cpu := NewCPU(bus)
+  cpu := NewCPU(cb)
   cpu.Reset()
 
   for {
     time.Sleep(time.Millisecond * 1)
-    cpu.Step()
+    cycle := cpu.Step()
+    ppu.Run(uint16(cycle *3))
   }
 }

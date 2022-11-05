@@ -2,7 +2,6 @@ package main
 
 import (
   "log"
-  "os"
 )
 
 type CPU struct {
@@ -85,6 +84,25 @@ var addressingModeMap [256]uint8 = [256]uint8{
   10, 12, 0, 0, 0, 5, 5, 0, 1, 9, 0, 0, 0,  8, 8, 0,
 }
 
+var cycles [256]uint8 = [256]uint8{
+  7, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,
+  2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 6, 7,
+  6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6,
+  2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 6, 7,
+  6, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 3, 4, 6, 6,
+  2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 6, 7,
+  6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 5, 4, 6, 6,
+  2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 6, 7,
+  2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+  2, 6, 2, 6, 4, 4, 4, 4, 2, 4, 2, 5, 5, 4, 5, 5,
+  2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+  2, 5, 2, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,
+  2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+  2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+  2, 6, 3, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+  2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+}
+
 func NewCPU(bus *CPUBus) *CPU {
   return &CPU{Bus: bus}
 }
@@ -94,7 +112,7 @@ func (c *CPU) Reset() {
   c.Register.P = &statusRegister{}
 }
 
-func (c *CPU) Step() {
+func (c *CPU) Step() uint8 {
   log.Printf("---Start Step--- \n")
   log.Printf("pc %v \n", c.Register.PC)
 
@@ -109,8 +127,10 @@ func (c *CPU) Step() {
 
   addr := c.getAddrFromMode(am)
   c.exec(op, addr, am)
+  cycle := cycles[v]
 
   log.Printf("---End Step--- \n\n")
+  return cycle
 }
 
 func (c *CPU) getAddrFromMode(mode uint8) uint16 {
@@ -185,7 +205,6 @@ func (c *CPU) getAddrFromMode(mode uint8) uint16 {
     return uint16(hh << 8 | ll)
   default:
     log.Fatal("cannnot hadle mode ", mode)
-    os.Exit(1)
   }
   return 0
 }
@@ -259,7 +278,6 @@ func (c *CPU) exec(operator string, addr uint16, mode uint8) {
     return
   default:
     log.Fatal("cannnot hadle operator ", operator)
-    os.Exit(1)
   }
 }
 
@@ -278,19 +296,15 @@ func (c *CPU) Read(addr uint16) byte {
   } else if addr < 0x2008 {
     // PPU Register
     log.Fatal("unhandle memory map")
-    os.Exit(1)
   } else if addr < 0x4000 {
     // PPU Register Mirror
     log.Fatal("unhandle memory map")
-    os.Exit(1)
   } else if addr < 0x4020 {
     // APU I/O PAD
     log.Fatal("unhandle memory map")
-    os.Exit(1)
   } else if addr < 0x8000 {
     // ext ROM
     log.Fatal("unhandle memory map")
-    os.Exit(1)
   } else if addr < 0xFFFF {
     // Read From PROGRAM ROM
     return c.Bus.Cartridge.Program.Read(addr - 0x8000)
@@ -310,22 +324,18 @@ func (c *CPU) Write(addr uint16, data byte) {
     return
   } else if addr < 0x2008 {
     // PPU Register
-    c.Bus.PPU.Register[addr - 0x2000] = data
+    c.Bus.PPU.WriteRegister(addr - 0x2000, data)
   } else if addr < 0x4000 {
     // PPU Register Mirror
     log.Fatal("unhandle memory map ", addr)
-    os.Exit(1)
   } else if addr < 0x4020 {
     // APU I/O PAD
     log.Fatal("unhandle memory map ", addr)
-    os.Exit(1)
   } else if addr < 0x8000 {
     // ext ROM
     log.Fatal("unhandle memory map ", addr)
-    os.Exit(1)
   } else if addr < 0xFFFF {
     log.Fatal("unhandle memory map ", addr)
-    os.Exit(1)
   }
 }
 
