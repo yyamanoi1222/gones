@@ -1,13 +1,16 @@
 package main
 
-import "log"
+import (
+  "log"
+  "os"
+)
 
 type CPU struct {
-  Register Register
+  Register CPURegister
   Bus *CPUBus
 }
 
-type Register struct {
+type CPURegister struct {
   A byte
   X byte
   Y byte
@@ -182,6 +185,7 @@ func (c *CPU) getAddrFromMode(mode uint8) uint16 {
     return uint16(hh << 8 | ll)
   default:
     log.Fatal("cannnot hadle mode ", mode)
+    os.Exit(1)
   }
   return 0
 }
@@ -255,6 +259,7 @@ func (c *CPU) exec(operator string, addr uint16, mode uint8) {
     return
   default:
     log.Fatal("cannnot hadle operator ", operator)
+    os.Exit(1)
   }
 }
 
@@ -272,12 +277,20 @@ func (c *CPU) Read(addr uint16) byte {
     return c.Bus.Memory.Read(addr - 0x800)
   } else if addr < 0x2008 {
     // PPU Register
+    log.Fatal("unhandle memory map")
+    os.Exit(1)
   } else if addr < 0x4000 {
     // PPU Register Mirror
+    log.Fatal("unhandle memory map")
+    os.Exit(1)
   } else if addr < 0x4020 {
     // APU I/O PAD
+    log.Fatal("unhandle memory map")
+    os.Exit(1)
   } else if addr < 0x8000 {
     // ext ROM
+    log.Fatal("unhandle memory map")
+    os.Exit(1)
   } else if addr < 0xFFFF {
     // Read From PROGRAM ROM
     return c.Bus.Cartridge.Program.Read(addr - 0x8000)
@@ -288,6 +301,32 @@ func (c *CPU) Read(addr uint16) byte {
 }
 
 func (c *CPU) Write(addr uint16, data byte) {
+  if addr < 0x0800 {
+    // Write to RAM
+    c.Bus.Memory.Write(addr, data)
+    return
+  } else if addr < 0x2000 {
+    c.Bus.Memory.Write(addr - 0x800, data)
+    return
+  } else if addr < 0x2008 {
+    // PPU Register
+    c.Bus.PPU.Register[addr - 0x2000] = data
+  } else if addr < 0x4000 {
+    // PPU Register Mirror
+    log.Fatal("unhandle memory map ", addr)
+    os.Exit(1)
+  } else if addr < 0x4020 {
+    // APU I/O PAD
+    log.Fatal("unhandle memory map ", addr)
+    os.Exit(1)
+  } else if addr < 0x8000 {
+    // ext ROM
+    log.Fatal("unhandle memory map ", addr)
+    os.Exit(1)
+  } else if addr < 0xFFFF {
+    log.Fatal("unhandle memory map ", addr)
+    os.Exit(1)
+  }
 }
 
 func (c *CPU) push(data byte) {

@@ -5,7 +5,9 @@ import "time"
 func main() {
   cartridge := loadCartridge("sample.nes")
   ram := NewMemory(2048)
+  ppu := NewPPU()
   bus := &CPUBus{
+    PPU: ppu,
     Cartridge: cartridge,
     Memory: ram,
   }

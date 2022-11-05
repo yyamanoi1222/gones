@@ -14,5 +14,6 @@ func (m *Memory) Read(addr uint16) byte {
   return m.data[addr]
 }
 
-func (m *Memory) Write(addr uint16) {
+func (m *Memory) Write(addr uint16, data byte) {
+  m.data[addr] = data
 }
