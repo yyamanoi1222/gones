@@ -30,7 +30,7 @@ type PPU struct {
   ppuaddrCount int
   cycle uint16
   line uint16
-  bg [960]byte
+  bg [960]tile
 }
 
 type tile struct {
@@ -44,7 +44,7 @@ func NewPPU(bus *PPUBus) *PPU {
     Bus: bus,
     ppuaddrCount: 0,
     line: 0,
-    bg: [960]byte{},
+    bg: [960]tile{},
   }
 }
 
@@ -52,7 +52,7 @@ func (p *PPU) Run(cycle uint16) {
   p.cycle += cycle
 
   if p.line == 0 {
-    p.bg = [960]byte{}
+    p.bg = [960]tile{}
   }
 
   if p.cycle >= clock {
@@ -65,15 +65,22 @@ func (p *PPU) Run(cycle uint16) {
 
     if p.line == lineMax {
       p.line = 0
-      // complete rendering bg
+      // TODO complete rendering bg
     }
   }
 }
 
 func (p *PPU) addBgLine() {
   for i := 0; i < screenWidth / tilePixel; i++ {
-    p.bg[((p.line / tilePixel) - 1) * (screenWidth / tilePixel) + uint16(i)] = 1
+    k := ((p.line / tilePixel) - 1) * (screenWidth / tilePixel) + uint16(i)
+    p.bg[k] = p.fetchTile(uint16(k))
   }
+}
+
+func (p *PPU) fetchTile(addr uint16) tile {
+  // TODO build sprite
+  // spriteId := p.Bus.Memory.Read(addr)
+  return tile{}
 }
 
 func (p *PPU) ReadRegister(addr uint16) byte {
@@ -90,13 +97,14 @@ func (p *PPU) WriteRegister(addr uint16, data byte) {
     p.Register[addr] = data
   } else if addr == 6 {
     if p.ppuaddrCount == 0 {
-      p.vramAddr = uint16(data << 8)
+      p.vramAddr = uint16(data) << 8
+      p.ppuaddrCount++
     } else {
       p.vramAddr += uint16(data)
+      p.ppuaddrCount = 0
     }
-    p.ppuaddrCount++
   } else if addr == 7 {
-    p.Bus.Memory.Write(p.vramAddr, data)
+    p.Write(p.vramAddr, data)
     p.vramAddr++
   } else {
     log.Fatal("unhandle ", addr)
@@ -105,6 +113,15 @@ func (p *PPU) WriteRegister(addr uint16, data byte) {
 }
 
 func (p *PPU) Read(addr uint16) byte {
+  return p.Bus.Memory.Read(addr)
+  if addr > 0x2000 {
+    return p.Bus.Memory.Read(addr - 0x2000)
+  } else {
+    // TODO read from characterRam
+    log.Fatal("error ", addr)
+  }
+
+  /*
   if addr < 0x1000 {
     // pattern table 0
   } else if addr < 0x2000 {
@@ -134,10 +151,24 @@ func (p *PPU) Read(addr uint16) byte {
   } else if addr <= 0x3FFF {
     // mirror
   }
+  */
 
   var i byte
   return i
 }
 
 func (p *PPU) Write(addr uint16, data byte) {
+  if addr >= 0x2000 {
+    if addr >= 0x3F00 {
+    } else {
+      if addr >= 0x3000 {
+        p.Bus.Memory.Write(addr - 0x3000, data)
+      } else {
+        p.Bus.Memory.Write(addr - 0x2000, data)
+      }
+    }
+  } else {
+    // TODO write to character ram
+    // log.Fatal("error ", addr)
+  }
 }

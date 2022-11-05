@@ -122,6 +122,7 @@ func (c *CPU) Step() uint8 {
 
   log.Printf("op %v \n", op)
   log.Printf("am %v \n", am)
+  log.Printf("r %v \n", c.Register)
 
   c.Register.PC++
 
@@ -160,17 +161,13 @@ func (c *CPU) getAddrFromMode(mode uint8) uint16 {
     c.Register.PC+=2
     return r
   case ADDRESSING_MODE_ABSX:
-    l := c.Read(c.Register.PC)
-    c.Register.PC++
-    u := c.Read(c.Register.PC)
-    c.Register.PC++
-    return uint16(u << 8 | l) + uint16(c.Register.X)
+    r := c.ReadDouble(c.Register.PC)
+    c.Register.PC+=2
+    return r + uint16(c.Register.X)
   case ADDRESSING_MODE_ABSY:
-    l := c.Read(c.Register.PC)
-    c.Register.PC++
-    u := c.Read(c.Register.PC)
-    c.Register.PC++
-    return uint16(u << 8 | l) + uint16(c.Register.Y)
+    r := c.ReadDouble(c.Register.PC)
+    c.Register.PC+=2
+    return r + uint16(c.Register.Y)
   case ADDRESSING_MODE_REL:
     v := c.Read(c.Register.PC)
     c.Register.PC++
@@ -212,19 +209,37 @@ func (c *CPU) getAddrFromMode(mode uint8) uint16 {
 func (c *CPU) exec(operator string, addr uint16, mode uint8) {
   switch operator {
   case "LDX":
-    v := c.Read(addr)
+    var v byte
+    if mode == 3 {
+      v = byte(addr)
+    } else {
+      v = c.Read(addr)
+    }
     c.Register.X = v
     c.Register.P.Z = v == 0
     c.Register.P.N = v & 0x80 > 0
     return
   case "LDA":
-    v := c.Read(addr)
+    var v byte
+
+    if mode == 3 {
+      v = byte(addr)
+    } else {
+      v = c.Read(addr)
+    }
+
     c.Register.A = v
     c.Register.P.Z = v == 0
     c.Register.P.N = v & 0x80 > 0
     return
   case "LDY":
-    v := c.Read(addr)
+    var v byte
+
+    if mode == 3 {
+      v = byte(addr)
+    } else {
+      v = c.Read(addr)
+    }
     c.Register.Y = v
     c.Register.P.Z = v == 0
     c.Register.P.N = v & 0x80 > 0

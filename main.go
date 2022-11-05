@@ -19,7 +19,7 @@ func main() {
   cpu.Reset()
 
   for {
-    time.Sleep(time.Millisecond * 1)
+    time.Sleep(time.Millisecond * 0)
     cycle := cpu.Step()
     ppu.Run(uint16(cycle *3))
   }
