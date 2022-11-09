@@ -8,6 +8,7 @@ func main() {
   vram := NewMemory(2048)
   pb := &PPUBus{
     Memory: vram,
+    Cartridge: cartridge,
   }
   ppu := NewPPU(pb)
   cb := &CPUBus{

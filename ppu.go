@@ -2,6 +2,7 @@ package main
 
 import (
   "log"
+  "image"
 )
 
 type PPURegister [8]byte
@@ -31,10 +32,13 @@ type PPU struct {
   cycle uint16
   line uint16
   bg [960]tile
+  renderable bool
+  screen *image.RGBA
 }
 
+type sprite [8][8]byte
 type tile struct {
-  sprite [16]byte
+  sprite sprite
 }
 
 func NewPPU(bus *PPUBus) *PPU {
@@ -45,6 +49,7 @@ func NewPPU(bus *PPUBus) *PPU {
     ppuaddrCount: 0,
     line: 0,
     bg: [960]tile{},
+    screen: image.NewRGBA(image.Rect(0, 0, 256, 240)),
   }
 }
 
@@ -53,6 +58,7 @@ func (p *PPU) Run(cycle uint16) {
 
   if p.line == 0 {
     p.bg = [960]tile{}
+    p.renderable = false
   }
 
   if p.cycle >= clock {
@@ -64,8 +70,8 @@ func (p *PPU) Run(cycle uint16) {
     }
 
     if p.line == lineMax {
+      p.renderable = true
       p.line = 0
-      // TODO complete rendering bg
     }
   }
 }
@@ -78,9 +84,27 @@ func (p *PPU) addBgLine() {
 }
 
 func (p *PPU) fetchTile(addr uint16) tile {
-  // TODO build sprite
-  // spriteId := p.Bus.Memory.Read(addr)
-  return tile{}
+  spriteId := p.Bus.Memory.Read(addr)
+  return tile{
+    sprite: p.buildSprite(spriteId),
+  }
+}
+
+func (p *PPU) buildSprite(spriteId byte) sprite {
+  var s sprite = [8][8]byte{}
+  for i := 0; i < 16; i++ {
+    for j := 0; j < 8; j++ {
+      addr := uint16(spriteId) * 16 + uint16(i)
+      v := p.Bus.Cartridge.Char.Read(addr)
+
+      if v & 0x80 >> j > 0 {
+        s[i%8][j] += 0x01 << byte(i / 8)
+      } else {
+        s[i%8][j] += 0
+      }
+    }
+  }
+  return s
 }
 
 func (p *PPU) ReadRegister(addr uint16) byte {

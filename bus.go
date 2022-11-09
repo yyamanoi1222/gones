@@ -10,4 +10,5 @@ type CPUBus struct {
 
 type PPUBus struct {
   Memory *Memory
+  Cartridge *Cartridge
 }
