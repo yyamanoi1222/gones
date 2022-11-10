@@ -2,7 +2,10 @@ package main
 
 import (
   "log"
+  "os"
   "image"
+  "image/jpeg"
+  "image/color"
 )
 
 type PPURegister [8]byte
@@ -70,10 +73,29 @@ func (p *PPU) Run(cycle uint16) {
     }
 
     if p.line == lineMax {
+      p.renderBackground()
       p.renderable = true
       p.line = 0
     }
   }
+}
+
+func (p *PPU) renderBackground() {
+  for i, tile := range p.bg {
+    x := (i % (screenWidth / tilePixel)) * 8
+    y := i / (screenWidth / tilePixel) * 8
+
+    for j := 0; j < 8; j++ {
+      for k := 0; k < 8; k++ {
+        c := tile.sprite[j][k]
+        p.screen.Set(x+j, y+k, color.RGBA{c*100,0,0,0})
+      }
+    }
+  }
+  file, _ := os.Create("sample.jpg")
+  jpeg.Encode(file, p.screen, &jpeg.Options{100})
+  log.Print("bg ", p.bg)
+  os.Exit(1)
 }
 
 func (p *PPU) addBgLine() {
