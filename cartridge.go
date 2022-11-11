@@ -57,14 +57,14 @@ func loadCartridge(path string) *Cartridge {
   prgSize := int64(header[4]) * ProgramRomBaseSize
   charSize := int64(header[5]) * CharRomBaseSize
 
-  pr := io.NewSectionReader(file, NesHeaderSize, prgSize)
+  pr := io.NewSectionReader(file, NesHeaderSize, NesHeaderSize + prgSize)
   prgRom, err := io.ReadAll(pr)
   if err != nil {
     log.Fatal(err)
     os.Exit(1)
   }
 
-  cr := io.NewSectionReader(file, prgSize + 1, charSize)
+  cr := io.NewSectionReader(file, NesHeaderSize + prgSize + 1, NesHeaderSize + prgSize + 1 + charSize)
   chrRom, err := io.ReadAll(cr)
   if err != nil {
     log.Fatal(err)

@@ -94,7 +94,7 @@ func (p *PPU) renderBackground() {
   }
   file, _ := os.Create("sample.jpg")
   jpeg.Encode(file, p.screen, &jpeg.Options{100})
-  log.Print("bg ", p.bg)
+  // log.Print("bg ", p.bg)
   os.Exit(1)
 }
 
@@ -107,6 +107,7 @@ func (p *PPU) addBgLine() {
 
 func (p *PPU) fetchTile(addr uint16) tile {
   spriteId := p.Bus.Memory.Read(addr)
+  log.Print("sprite ", p.buildSprite(spriteId))
   return tile{
     sprite: p.buildSprite(spriteId),
   }
@@ -121,8 +122,6 @@ func (p *PPU) buildSprite(spriteId byte) sprite {
 
       if v & 0x80 >> j > 0 {
         s[i%8][j] += 0x01 << byte(i / 8)
-      } else {
-        s[i%8][j] += 0
       }
     }
   }
@@ -215,6 +214,6 @@ func (p *PPU) Write(addr uint16, data byte) {
     }
   } else {
     // TODO write to character ram
-    // log.Fatal("error ", addr)
+    log.Fatal("error ", addr)
   }
 }

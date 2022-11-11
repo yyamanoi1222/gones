@@ -113,16 +113,20 @@ func (c *CPU) Reset() {
 }
 
 func (c *CPU) Step() uint8 {
+  /*
   log.Printf("---Start Step--- \n")
   log.Printf("pc %v \n", c.Register.PC)
+  */
 
   v := c.Read(c.Register.PC)
   op := opecode[v]
   am := addressingModeMap[v]
 
+  /*
   log.Printf("op %v \n", op)
   log.Printf("am %v \n", am)
   log.Printf("r %v \n", c.Register)
+  */
 
   c.Register.PC++
 
@@ -130,7 +134,9 @@ func (c *CPU) Step() uint8 {
   c.exec(op, addr, am)
   cycle := cycles[v]
 
+  /*
   log.Printf("---End Step--- \n\n")
+  */
   return cycle
 }
 
