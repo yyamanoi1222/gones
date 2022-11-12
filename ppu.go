@@ -88,13 +88,12 @@ func (p *PPU) renderBackground() {
     for j := 0; j < 8; j++ {
       for k := 0; k < 8; k++ {
         c := tile.sprite[j][k]
-        p.screen.Set(x+j, y+k, color.RGBA{c*100,0,0,0})
+        p.screen.Set(x+k, y+j, color.RGBA{c*100,0,0,0})
       }
     }
   }
   file, _ := os.Create("sample.jpg")
   jpeg.Encode(file, p.screen, &jpeg.Options{100})
-  // log.Print("bg ", p.bg)
   os.Exit(1)
 }
 
@@ -107,7 +106,6 @@ func (p *PPU) addBgLine() {
 
 func (p *PPU) fetchTile(addr uint16) tile {
   spriteId := p.Bus.Memory.Read(addr)
-  log.Print("sprite ", p.buildSprite(spriteId))
   return tile{
     sprite: p.buildSprite(spriteId),
   }
@@ -119,9 +117,10 @@ func (p *PPU) buildSprite(spriteId byte) sprite {
     for j := 0; j < 8; j++ {
       addr := uint16(spriteId) * 16 + uint16(i)
       v := p.Bus.Cartridge.Char.Read(addr)
-
-      if v & 0x80 >> j > 0 {
+      if v & (0x80 >> j) > 0 {
         s[i%8][j] += 0x01 << byte(i / 8)
+      } else {
+        s[i%8][j] += 0
       }
     }
   }
