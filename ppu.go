@@ -6,6 +6,7 @@ import (
   "image"
   "image/jpeg"
   "image/color"
+  "fmt"
 )
 
 type PPURegister [8]byte
@@ -42,6 +43,7 @@ type PPU struct {
 type sprite [8][8]byte
 type tile struct {
   sprite sprite
+  paletteId byte
 }
 
 func NewPPU(bus *PPUBus) *PPU {
@@ -99,16 +101,28 @@ func (p *PPU) renderBackground() {
 
 func (p *PPU) addBgLine() {
   for i := 0; i < screenWidth / tilePixel; i++ {
-    k := ((p.line / tilePixel) - 1) * (screenWidth / tilePixel) + uint16(i)
-    p.bg[k] = p.fetchTile(uint16(k))
+    // tileX = 0 ~ 31
+    // tileY = 0 ~ 31
+    tileX := uint16(i)
+    tileY := (p.line / tilePixel) - 1
+    addr := tileY * (screenWidth / tilePixel) + tileX
+    p.bg[addr] = p.fetchTile(addr, tileX, tileY)
   }
 }
 
-func (p *PPU) fetchTile(addr uint16) tile {
+func (p *PPU) fetchTile(addr uint16, x uint16, y uint16) tile {
   spriteId := p.Bus.Memory.Read(addr)
+  attr := p.fetchFromAttributeTable(x, y)
+  fmt.Printf("attr %v \n", attr)
+
   return tile{
     sprite: p.buildSprite(spriteId),
   }
+}
+
+func (p *PPU) fetchFromAttributeTable(x uint16, y uint16) byte {
+  addr := 0x03C0 + uint16((x / 4) + (y / 4))
+  return p.Bus.Memory.Read(addr)
 }
 
 func (p *PPU) buildSprite(spriteId byte) sprite {
